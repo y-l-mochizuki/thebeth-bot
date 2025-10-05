@@ -95,7 +95,7 @@ const ThreadWelcome: FC = () => {
             exit={{ opacity: 0, y: 10 }}
             className="aui-thread-welcome-message-motion-1 text-2xl font-semibold"
           >
-            Hello there!
+            こんにちは、THE+BETHボットです
           </m.div>
           <m.div
             initial={{ opacity: 0, y: 10 }}
@@ -104,7 +104,7 @@ const ThreadWelcome: FC = () => {
             transition={{ delay: 0.1 }}
             className="aui-thread-welcome-message-motion-2 text-2xl text-muted-foreground/65"
           >
-            How can I help you today?
+            知りたいことや気になることを教えてください。
           </m.div>
         </div>
       </div>
@@ -118,24 +118,14 @@ const ThreadSuggestions: FC = () => {
     <div className="aui-thread-welcome-suggestions grid w-full gap-2 pb-4 @md:grid-cols-2">
       {[
         {
-          title: "What's the weather",
-          label: "in San Francisco?",
-          action: "What's the weather in San Francisco?",
+          title: "THE+BETHとは？",
+          label: "グループの紹介を見る",
+          action: "THE+BETHとは？",
         },
         {
-          title: "Explain React hooks",
-          label: "like useState and useEffect",
-          action: "Explain React hooks like useState and useEffect",
-        },
-        {
-          title: "Write a SQL query",
-          label: "to find top customers",
-          action: "Write a SQL query to find top customers",
-        },
-        {
-          title: "Create a meal plan",
-          label: "for healthy weight loss",
-          action: "Create a meal plan for healthy weight loss",
+          title: "最近のライブスケジュールは？",
+          label: "開催日や会場を確認する",
+          action: "最近のライブスケジュールは？",
         },
       ].map((suggestedAction, index) => (
         <m.div

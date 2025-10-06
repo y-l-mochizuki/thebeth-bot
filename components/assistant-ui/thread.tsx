@@ -62,6 +62,12 @@ export const Thread: FC = () => {
               <div className="aui-thread-viewport-spacer min-h-8 grow" />
             </ThreadPrimitive.If>
 
+            <div className="mx-auto mb-4 max-w-[var(--thread-max-width)] rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4">
+              <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                ⚠️ AIは誤った情報を含む可能性があります。
+                最新の正確な情報は、公式Xアカウント（@THE_BETH_JP）をご確認ください。
+              </p>
+            </div>
             <Composer />
           </ThreadPrimitive.Viewport>
         </ThreadPrimitive.Root>
@@ -102,7 +108,7 @@ const ThreadWelcome: FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ delay: 0.1 }}
-            className="aui-thread-welcome-message-motion-2 text-2xl text-muted-foreground/65"
+            className="aui-thread-welcome-message-motion-2 text-2xl text-muted-foreground/65 text-sm"
           >
             知りたいことや気になることを教えてください。
           </m.div>
@@ -121,11 +127,6 @@ const ThreadSuggestions: FC = () => {
           title: "THE+BETHとは？",
           label: "グループの紹介を見る",
           action: "THE+BETHとは？",
-        },
-        {
-          title: "最近のライブスケジュールは？",
-          label: "開催日や会場を確認する",
-          action: "最近のライブスケジュールは？",
         },
       ].map((suggestedAction, index) => (
         <m.div
@@ -167,7 +168,7 @@ const Composer: FC = () => {
       <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col rounded-3xl border border-border bg-muted px-1 pt-2 shadow-[0_9px_9px_0px_rgba(0,0,0,0.01),0_2px_5px_0px_rgba(0,0,0,0.06)] dark:border-muted-foreground/15">
         <ComposerAttachments />
         <ComposerPrimitive.Input
-          placeholder="Send a message..."
+          placeholder="メッセージを入力..."
           className="aui-composer-input mb-1 max-h-32 min-h-16 w-full resize-none bg-transparent px-3.5 pt-1.5 pb-3 text-base outline-none placeholder:text-muted-foreground focus:outline-primary"
           rows={1}
           autoFocus

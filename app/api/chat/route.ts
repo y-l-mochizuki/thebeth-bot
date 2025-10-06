@@ -1,11 +1,9 @@
 import { openai } from "@ai-sdk/openai";
 import { frontendTools } from "@assistant-ui/react-ai-sdk";
 import { convertToModelMessages, streamText } from "ai";
-import { Document } from "@langchain/core/documents";
-import { CharacterTextSplitter } from "langchain/text_splitter";
 import { getTweets } from "@/lib/twitter-api";
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { Chroma } from "@langchain/community/vectorstores/chroma";
+import { client } from "@/lib/chromadb";
 
 export const maxDuration = 30;
 
@@ -28,56 +26,95 @@ export async function POST(req: Request) {
 
   const tweets = await getTweets();
 
-  const documents = tweets.map((tweet) => {
-    const { text, id, created_at, author_id, author_username } = tweet;
-    return new Document({
-      pageContent: text,
-      metadata: {
-        id: id,
-        created_at: created_at,
-        author_id: author_id,
-        author_username: author_username || "",
-      },
-    });
-  });
-
-  const textSplitter = new CharacterTextSplitter({
-    chunkSize: 1000,
-    chunkOverlap: 0,
-  });
-
   const embeddings = new OpenAIEmbeddings({
     model: "text-embedding-3-small",
   });
 
-  const docs = await textSplitter.splitDocuments(documents);
-  const db = await Chroma.fromDocuments(docs, embeddings, {});
-  const retriever = db.asRetriever();
   const userQuestion = messages[messages.length - 1]?.content || "";
-  const retrieverResult = await retriever.invoke(userQuestion);
 
-  const relevantTweets = retrieverResult
-    .map((doc: any) => {
-      const metadata = doc.metadata;
-      return `[@${metadata.author_username || "unknown"}] ${doc.pageContent}`;
-    })
-    .join("\n\n");
+  try {
+    // ChromaDB Cloudのコレクションを取得または作成
+    const collectionName = "thebeth-tweets";
+    const collection = await client.getOrCreateCollection({ 
+      name: collectionName 
+    });
 
-  // システムプロンプトに検索結果を追加
-  const enhancedSystemPrompt = `${SYSTEM_PROMPT}
-      以下は最新のツイート情報です。これらの情報を参考に回答してください：
-      ${relevantTweets}
-    `;
+    // ツイートをエンベディングに変換
+    const tweetTexts = tweets.map(t => t.text);
+    const tweetEmbeddings = await embeddings.embedDocuments(tweetTexts);
 
-  const result = streamText({
-    model: openai("gpt-4o"),
-    messages: convertToModelMessages(messages),
-    system: enhancedSystemPrompt,
-    tools: {
-      ...frontendTools(tools),
-      // add backend tools here
-    },
-  });
+    // 既存のデータをクリア（すべてのレコードを削除）
+    await collection.delete({});
 
-  return result.toUIMessageStreamResponse();
+    // 新しいデータを追加
+    await collection.add({
+      ids: tweets.map(t => t.id),
+      embeddings: tweetEmbeddings,
+      documents: tweetTexts,
+      metadatas: tweets.map(t => ({
+        author_username: t.author_username || "unknown",
+        created_at: t.created_at,
+        author_id: t.author_id
+      }))
+    });
+
+    // ユーザーの質問をエンベディングに変換して検索
+    const queryEmbedding = await embeddings.embedQuery(userQuestion);
+    const results = await collection.query({
+      queryEmbeddings: [queryEmbedding],
+      nResults: 5
+    });
+
+    // 検索結果をフォーマット
+    const relevantTweets = results.documents[0]
+      ?.map((doc, i) => {
+        const metadata = results.metadatas[0]?.[i];
+        return `[@${metadata?.author_username || "unknown"}] ${doc}`;
+      })
+      .join("\n\n") || "";
+
+    // システムプロンプトに検索結果を追加
+    const enhancedSystemPrompt = `${SYSTEM_PROMPT}
+
+以下は最新のツイート情報です。これらの情報を参考に回答してください：
+
+${relevantTweets}`;
+
+    const result = streamText({
+      model: openai("gpt-4o"),
+      messages: convertToModelMessages(messages),
+      system: enhancedSystemPrompt,
+      tools: {
+        ...frontendTools(tools),
+      },
+    });
+
+    return result.toUIMessageStreamResponse();
+
+  } catch (error) {
+    console.error("ChromaDB error:", error);
+    
+    // エラーの場合は最新のツイートを直接使用
+    const fallbackTweets = tweets
+      .slice(0, 10)
+      .map(t => `[@${t.author_username || "unknown"}] ${t.text}`)
+      .join("\n\n");
+
+    const fallbackSystemPrompt = `${SYSTEM_PROMPT}
+
+以下は最新のツイート情報です。これらの情報を参考に回答してください：
+
+${fallbackTweets}`;
+
+    const result = streamText({
+      model: openai("gpt-4o"),
+      messages: convertToModelMessages(messages),
+      system: fallbackSystemPrompt,
+      tools: {
+        ...frontendTools(tools),
+      },
+    });
+
+    return result.toUIMessageStreamResponse();
+  }
 }

@@ -18,13 +18,16 @@ export async function getTweets(): Promise<Tweet[]> {
     const response = await fetch(URL, OPTIONS);
 
     if (!response.ok) {
-      const error = new Error(`X API error: ${response.status}`);
-      throw error;
+      const errorText = await response.text();
+      console.error(`X API Error (${response.status}):`, errorText);
+      throw new Error(`X API error: ${errorText || response.statusText}`);
     }
 
     const data = await response.json();
     return data.data || [];
-  } catch (error: any) {
-    throw new Error(error.message || "Failed to fetch tweets");
+  } catch (error) {
+    // fetchエラーまたは上記のthrowされたエラー
+    console.error("getTweets error:", error);
+    throw error;
   }
 }

@@ -53,16 +53,9 @@ export async function POST(req: Request) {
   const docs = await textSplitter.splitDocuments(documents);
   const db = await Chroma.fromDocuments(docs, embeddings, {});
   const retriever = db.asRetriever();
-
-  // ユーザーの最新メッセージを取得
   const userQuestion = messages[messages.length - 1]?.content || "";
-
-  // ユーザーの質問から検索クエリを生成（シンプルにユーザーの質問をそのまま使用）
   const retrieverResult = await retriever.invoke(userQuestion);
 
-  console.log("retrieverResult", retrieverResult);
-
-  // 検索結果から関連するツイート情報を抽出
   const relevantTweets = retrieverResult
     .map((doc: any) => {
       const metadata = doc.metadata;
